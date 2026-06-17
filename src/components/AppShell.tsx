@@ -1,12 +1,14 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import {
-  LayoutDashboard, Users, Settings, Activity, FileText, Store, Bell, LogOut,
-  Package, AlertTriangle, ShoppingCart, Boxes, ArrowDownToLine, Edit3, History,
+  LayoutDashboard, Users, Settings, Activity, FileText, Store, LogOut,
+  Package, AlertTriangle, ShoppingCart, Boxes, ArrowDownToLine, History,
   RefreshCw, ChevronLeft, ChevronRight, Radio,
 } from "lucide-react";
 import { useAuth, ROLE_LABELS, ROLE_BADGE, type Role } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { NotificationPanel } from "@/components/NotificationPanel";
 
 interface NavItem { to: string; label: string; icon: typeof Users; }
 
@@ -38,6 +40,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const [collapsed, setCollapsed] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   if (!user) return null;
   const nav = NAV[user.role];
@@ -95,10 +98,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
             <h1 className="text-base font-semibold">{title}</h1>
           </div>
           <div className="flex items-center gap-3">
-            <button className="relative p-2 hover:bg-muted rounded-md" aria-label="Thông báo">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-4 h-4 text-[10px] bg-destructive text-destructive-foreground rounded-full grid place-items-center">3</span>
-            </button>
+            <NotificationPanel />
             <div className="flex items-center gap-2 px-3 py-1.5 border rounded-full bg-muted/40">
               <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground grid place-items-center text-xs font-semibold">
                 {user.fullName.split(" ").pop()?.[0]}
@@ -113,7 +113,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
             <Button
               variant="outline"
               size="sm"
-              onClick={() => { logout(); navigate({ to: "/login" }); }}
+              onClick={() => setShowLogoutConfirm(true)}
             >
               <LogOut className="w-4 h-4 mr-1" /> Đăng xuất
             </Button>
@@ -121,6 +121,23 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
         </header>
         <main className="flex-1 p-6 overflow-x-hidden">{children}</main>
       </div>
+
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { logout(); navigate({ to: "/login" }); }}>
+              Xác nhận
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

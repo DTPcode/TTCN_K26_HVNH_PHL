@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell, EmptyState } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
-import { USERS, fmtTime, emit, type UserAccount } from "@/data/mockData";
+import { USERS, fmtTime, emit, addNotification, type UserAccount } from "@/data/mockData";
 import { useSyncStore } from "@/lib/useSyncStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import { ROLE_LABELS, ROLE_BADGE, type Role } from "@/lib/auth";
 import { toast } from "sonner";
 
@@ -26,13 +26,17 @@ function Page() {
   const [open, setOpen] = useState(false);
   const [toToggle, setToToggle] = useState<UserAccount | null>(null);
   const [form, setForm] = useState({ fullName: "", email: "", role: "ecommerce_admin" as Role, password: "", confirm: "" });
+  const [editUser, setEditUser] = useState<UserAccount | null>(null);
+  const [editForm, setEditForm] = useState({ fullName: "", email: "", role: "ecommerce_admin" as Role });
 
   const submit = () => {
     if (!form.fullName || !form.email) { toast.error("Vui lòng điền đủ thông tin"); return; }
     if (form.password.length < 6) { toast.error("Mật khẩu tối thiểu 6 ký tự"); return; }
     if (form.password !== form.confirm) { toast.error("Mật khẩu xác nhận không khớp"); return; }
     USERS.unshift({ id: `U-${Date.now()}`, ...form, active: true, createdAt: Date.now() });
-    emit(); toast.success("Tạo tài khoản thành công");
+    emit();
+    addNotification("user_action", `Tài khoản mới được tạo`, `Đã tạo tài khoản ${form.fullName} thành công.`, "/admin/users");
+    toast.success("Tạo tài khoản thành công");
     setOpen(false);
     setForm({ fullName: "", email: "", role: "ecommerce_admin", password: "", confirm: "" });
   };
@@ -42,6 +46,25 @@ function Page() {
     toToggle.active = !toToggle.active; emit();
     toast.success(toToggle.active ? "Đã mở khóa tài khoản" : "Đã khóa tài khoản");
     setToToggle(null);
+  };
+
+  const openEdit = (u: UserAccount) => {
+    setEditUser(u);
+    setEditForm({ fullName: u.fullName, email: u.email, role: u.role });
+  };
+
+  const submitEdit = () => {
+    if (!editUser) return;
+    if (!editForm.fullName.trim()) { toast.error("Họ tên không được để trống"); return; }
+    if (!editForm.email.trim() || !editForm.email.includes("@")) { toast.error("Email không hợp lệ"); return; }
+    const dup = USERS.find((u) => u.id !== editUser.id && u.email.toLowerCase() === editForm.email.toLowerCase());
+    if (dup) { toast.error("Email đã tồn tại trong hệ thống"); return; }
+    editUser.fullName = editForm.fullName.trim();
+    editUser.email = editForm.email.trim();
+    editUser.role = editForm.role;
+    emit();
+    toast.success("Cập nhật thông tin thành công");
+    setEditUser(null);
   };
 
   return (
@@ -72,7 +95,9 @@ function Page() {
                 </td>
                 <td className="px-3 py-2 text-xs">{fmtTime(u.createdAt)}</td>
                 <td className="px-3 py-2 text-right space-x-1">
-                  <Button size="sm" variant="outline">Chỉnh sửa</Button>
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => openEdit(u)}>
+                    <Pencil className="w-3.5 h-3.5" /> Chỉnh sửa
+                  </Button>
                   <Button size="sm" variant="ghost" className={u.active ? "text-red-600" : "text-emerald-600"} onClick={() => setToToggle(u)}>
                     {u.active ? "Khóa" : "Mở khóa"}
                   </Button>
@@ -124,6 +149,38 @@ function Page() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog Chỉnh sửa thông tin người dùng */}
+      <Dialog open={editUser !== null} onOpenChange={(o) => !o && setEditUser(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Chỉnh sửa thông tin người dùng</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Họ và tên</Label>
+              <Input value={editForm.fullName} onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })} />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+            </div>
+            <div>
+              <Label>Vai trò</Label>
+              <Select value={editForm.role} onValueChange={(v) => setEditForm({ ...editForm, role: v as Role })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="system_admin">System Admin</SelectItem>
+                  <SelectItem value="ecommerce_admin">Admin TMĐT</SelectItem>
+                  <SelectItem value="warehouse_manager">Quản lý Kho</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUser(null)}>Hủy</Button>
+            <Button onClick={submitEdit}>Lưu</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

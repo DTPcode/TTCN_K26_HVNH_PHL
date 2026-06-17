@@ -2,13 +2,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell, EmptyState } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
-import { SKUS, PRODUCTS, fmtVN, fmtRel } from "@/data/mockData";
+import { SKUS, PRODUCTS, fmtVN, createStockRequest, type SKU } from "@/data/mockData";
 import { useSyncStore } from "@/lib/useSyncStore";
+import { useAuth } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { AlertTriangle, PackageX, Search, TrendingDown } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertTriangle, PackageX, Search, TrendingDown, ClipboardPlus } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/alerts")({
   head: () => ({
@@ -28,8 +34,12 @@ export const Route = createFileRoute("/alerts")({
 
 function AlertsBody() {
   useSyncStore();
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"low" | "out">("low");
+  const [requestSku, setRequestSku] = useState<SKU | null>(null);
+  const [reqQty, setReqQty] = useState("");
+  const [reqNote, setReqNote] = useState("");
 
   // Không cần useMemo vì useSyncStore() đã trigger re-render khi data thay đổi
   const outOfStock = SKUS.filter((s) => s.isActive && s.central === 0);
@@ -38,6 +48,24 @@ function AlertsBody() {
   const filtered = (tab === "low" ? lowStock : outOfStock).filter(
     (s) => s.sku.toLowerCase().includes(search.toLowerCase()) || s.name.toLowerCase().includes(search.toLowerCase()),
   );
+
+  const openRequestDialog = (sku: SKU) => {
+    setRequestSku(sku);
+    setReqQty("");
+    setReqNote("");
+  };
+
+  const submitRequest = () => {
+    if (!requestSku) return;
+    const qty = parseInt(reqQty);
+    if (!reqQty || isNaN(qty) || qty <= 0) {
+      toast.error("Số lượng cần nhập phải lớn hơn 0");
+      return;
+    }
+    createStockRequest(requestSku.sku, requestSku.name, qty, reqNote, user?.fullName || "Hệ thống");
+    toast.success("Đã gửi yêu cầu nhập hàng thành công");
+    setRequestSku(null);
+  };
 
   return (
     <div className="space-y-5">
@@ -103,17 +131,60 @@ function AlertsBody() {
         </div>
 
         <TabsContent value="low" className="mt-4">
-          <AlertTable items={filtered} type="low" />
+          <AlertTable items={filtered} type="low" onRequestImport={openRequestDialog} />
         </TabsContent>
         <TabsContent value="out" className="mt-4">
-          <AlertTable items={filtered} type="out" />
+          <AlertTable items={filtered} type="out" onRequestImport={openRequestDialog} />
         </TabsContent>
       </Tabs>
+
+      {/* Dialog Yêu cầu nhập hàng */}
+      <Dialog open={requestSku !== null} onOpenChange={(o) => !o && setRequestSku(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tạo yêu cầu nhập hàng</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-muted-foreground text-xs">Sản phẩm</Label>
+              <div className="mt-1 text-sm font-medium">{requestSku?.name}</div>
+              <div className="text-xs text-muted-foreground font-mono">{requestSku?.sku}</div>
+            </div>
+            <div>
+              <Label>Số lượng cần nhập <span className="text-red-500">*</span></Label>
+              <Input
+                type="number"
+                min="1"
+                placeholder="Nhập số lượng..."
+                value={reqQty}
+                onChange={(e) => setReqQty(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Ghi chú</Label>
+              <Textarea
+                placeholder="Ghi chú thêm (nếu có)..."
+                value={reqNote}
+                onChange={(e) => setReqNote(e.target.value)}
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRequestSku(null)}>Hủy</Button>
+            <Button onClick={submitRequest}>
+              <ClipboardPlus className="w-4 h-4 mr-1" /> Gửi yêu cầu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function AlertTable({ items, type }: { items: typeof SKUS; type: "low" | "out" }) {
+function AlertTable({ items, type, onRequestImport }: { items: typeof SKUS; type: "low" | "out"; onRequestImport: (sku: SKU) => void }) {
   if (items.length === 0) {
     return (
       <Card>
@@ -136,6 +207,7 @@ function AlertTable({ items, type }: { items: typeof SKUS; type: "low" | "out" }
               <th className="px-4 py-2.5 text-right">Tồn kho</th>
               <th className="px-4 py-2.5 text-right">Ngưỡng</th>
               <th className="px-4 py-2.5 text-center">Trạng thái</th>
+              <th className="px-4 py-2.5 text-center">Hành động</th>
             </tr>
           </thead>
           <tbody>
@@ -158,6 +230,16 @@ function AlertTable({ items, type }: { items: typeof SKUS; type: "low" | "out" }
                     ) : (
                       <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100">Sắp hết</Badge>
                     )}
+                  </td>
+                  <td className="px-4 py-2.5 text-center">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1 text-xs"
+                      onClick={() => onRequestImport(s)}
+                    >
+                      <ClipboardPlus className="w-3.5 h-3.5" /> Yêu cầu nhập
+                    </Button>
                   </td>
                 </tr>
               );

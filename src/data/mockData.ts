@@ -132,6 +132,29 @@ export interface ChannelConfig {
   testResult: "success" | "failed" | null;
 }
 
+export type NotificationType = "stock_out" | "stock_low" | "sync_error" | "sync_success" | "stock_request" | "config_change" | "user_action";
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  time: number;
+  read: boolean;
+  link?: string;
+}
+
+export interface StockRequest {
+  id: string;
+  sku: string;
+  skuName: string;
+  qty: number;
+  note: string;
+  status: "pending" | "approved" | "rejected";
+  requestedBy: string;
+  requestedAt: number;
+}
+
 // ============================================================
 // CHANNELS (5 kênh — khớp seed.sql)
 // ============================================================
@@ -215,6 +238,25 @@ export const CHANNEL_CONFIGS: ChannelConfig[] = [
     testResult: "success",
   },
 ];
+
+// ============================================================
+// NOTIFICATIONS (thông báo hệ thống)
+// ============================================================
+export const NOTIFICATIONS: Notification[] = [
+  { id: "NTF-001", type: "stock_out", title: "Hết hàng: AT-THUN-NAV-L", message: "Thun Navy - L đã hết hàng hoàn toàn. Cần nhập bổ sung ngay.", time: now - 1000 * 60 * 15, read: false, link: "/alerts" },
+  { id: "NTF-002", type: "stock_low", title: "Sắp hết hàng: AT-QAAU-GRY-30", message: "Quần Âu Xám - 30 chỉ còn 1 sản phẩm, dưới ngưỡng cảnh báo.", time: now - 1000 * 60 * 30, read: false, link: "/alerts" },
+  { id: "NTF-003", type: "stock_low", title: "Sắp hết hàng: AT-SOMI-WHT-L", message: "Sơ Mi Trắng - L chỉ còn 2 sản phẩm, dưới ngưỡng cảnh báo.", time: now - 1000 * 60 * 45, read: false, link: "/alerts" },
+  { id: "NTF-004", type: "sync_error", title: "Lỗi đồng bộ kênh TikTok Shop", message: "Không thể kết nối API TikTok Shop. Vui lòng kiểm tra cấu hình.", time: now - 1000 * 60 * 60, read: false, link: "/channels" },
+  { id: "NTF-005", type: "sync_success", title: "Đồng bộ tồn kho thành công", message: "Đã đồng bộ 50 SKU ra tất cả kênh bán hàng thành công.", time: now - 1000 * 60 * 90, read: true },
+  { id: "NTF-006", type: "stock_request", title: "Yêu cầu nhập hàng AT-JOGG-BLK-L", message: "Đã tạo yêu cầu nhập 30 sản phẩm Jogger Đen - L.", time: now - 1000 * 60 * 120, read: true, link: "/alerts" },
+  { id: "NTF-007", type: "config_change", title: "Cấu hình hệ thống đã cập nhật", message: "Safety Buffer đã được thay đổi từ 2 → 5.", time: now - 1000 * 60 * 180, read: true, link: "/admin/config" },
+  { id: "NTF-008", type: "user_action", title: "Tài khoản mới được tạo", message: "Tài khoản Hoàng Văn Long (Quản lý Kho) đã được tạo thành công.", time: now - 1000 * 60 * 240, read: true, link: "/admin/users" },
+];
+
+// ============================================================
+// STOCK REQUESTS (yêu cầu nhập hàng)
+// ============================================================
+export const STOCK_REQUESTS: StockRequest[] = [];
 
 // ============================================================
 // PRODUCTS (10 sản phẩm — khớp seed.sql)
@@ -481,6 +523,12 @@ export function applyStockChange(sku: string, delta: number, source: ChannelId, 
       const buf = (c === "store") ? 0 : s.safetyBuffer;
       s.channels[c] = Math.max(0, s.central - buf);
     });
+    // Auto notification khi tồn kho thay đổi ngưỡng
+    if (s.central === 0) {
+      addNotification("stock_out", `Hết hàng: ${sku}`, `${s.name} đã hết hàng hoàn toàn. Cần nhập bổ sung ngay.`, "/alerts");
+    } else if (s.central > 0 && s.central <= s.lowStockThreshold) {
+      addNotification("stock_low", `Sắp hết hàng: ${sku}`, `${s.name} chỉ còn ${s.central} sản phẩm, dưới ngưỡng cảnh báo.`, "/alerts");
+    }
   }
   emit();
   setTimeout(() => {
@@ -543,8 +591,12 @@ export function manualAdjust(sku: string, newCentral: number): void {
 export function updateSetting(key: string, value: string): void {
   const s = SETTINGS.find((x) => x.key === key);
   if (s) {
+    const oldValue = s.value;
     s.value = value;
     s.updatedAt = Date.now();
+    if (oldValue !== value) {
+      addNotification("config_change", `Cấu hình "${s.description}" đã cập nhật`, `Giá trị thay đổi: ${oldValue} → ${value}`, "/admin/config");
+    }
   }
   emit();
 }
@@ -628,4 +680,55 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
 
 export function useMockSubscribe(): number {
   return 0;
+}
+
+// ============================================================
+// NOTIFICATION MUTATIONS
+// ============================================================
+export function addNotification(type: NotificationType, title: string, message: string, link?: string): void {
+  NOTIFICATIONS.unshift({
+    id: nextId("NTF-"),
+    type,
+    title,
+    message,
+    time: Date.now(),
+    read: false,
+    link,
+  });
+  // Keep only latest 50 notifications
+  if (NOTIFICATIONS.length > 50) NOTIFICATIONS.length = 50;
+  emit();
+}
+
+export function markNotificationRead(id: string): void {
+  const n = NOTIFICATIONS.find((x) => x.id === id);
+  if (n) n.read = true;
+  emit();
+}
+
+export function markAllNotificationsRead(): void {
+  NOTIFICATIONS.forEach((n) => (n.read = true));
+  emit();
+}
+
+// ============================================================
+// STOCK REQUEST MUTATIONS
+// ============================================================
+export function createStockRequest(sku: string, skuName: string, qty: number, note: string, requestedBy: string): void {
+  STOCK_REQUESTS.unshift({
+    id: nextId("SR-"),
+    sku,
+    skuName,
+    qty,
+    note,
+    status: "pending",
+    requestedBy,
+    requestedAt: Date.now(),
+  });
+  addNotification(
+    "stock_request",
+    `Yêu cầu nhập hàng ${sku}`,
+    `Đã tạo yêu cầu nhập ${qty} sản phẩm ${skuName}.`,
+    "/alerts"
+  );
 }
