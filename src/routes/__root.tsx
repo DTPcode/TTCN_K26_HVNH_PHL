@@ -82,11 +82,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Atino SyncInventory — Đồng bộ tồn kho đa kênh" },
       { name: "description", content: "Hệ thống quản lý đồng bộ tồn kho đa kênh cho Atino: Cửa hàng, Shopee, TikTok Shop, Lazada, Website." },
       { name: "author", content: "Atino" },
-      { property: "og:title", content: "Atino SyncInventory" },
-      { property: "og:description", content: "Đồng bộ tồn kho thời gian thực giữa 5 kênh bán hàng của Atino." },
+      { property: "og:title", content: "Atino SyncInventory — Đồng bộ tồn kho đa kênh" },
+      { property: "og:description", content: "Hệ thống quản lý đồng bộ tồn kho đa kênh cho Atino: Cửa hàng, Shopee, TikTok Shop, Lazada, Website." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Atino SyncInventory — Đồng bộ tồn kho đa kênh" },
+      { name: "twitter:description", content: "Hệ thống quản lý đồng bộ tồn kho đa kênh cho Atino: Cửa hàng, Shopee, TikTok Shop, Lazada, Website." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9092a0c8-0e89-4cc3-9314-37ce6c652dca/id-preview-f8d30b7f--d4bbcd9a-7256-4f7e-a904-4bff1f2812d9.lovable.app-1781665528739.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9092a0c8-0e89-4cc3-9314-37ce6c652dca/id-preview-f8d30b7f--d4bbcd9a-7256-4f7e-a904-4bff1f2812d9.lovable.app-1781665528739.png" },
     ],
     links: [
       {
