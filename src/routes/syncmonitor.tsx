@@ -25,11 +25,13 @@ function Page() {
   const [pickedSku, setPickedSku] = useState<string>(SKUS[0].sku);
   const [qty, setQty] = useState<number>(1);
 
-  // Auto-rotate simulated events
+  // Auto-rotate simulated events (only on SKUs with stock > 3 to prevent full drain)
   useEffect(() => {
     const t = setInterval(() => {
+      const available = SKUS.filter((s) => s.central > 3);
+      if (available.length === 0) return; // All stock too low, skip
       const ch = CHANNELS[Math.floor(Math.random() * CHANNELS.length)].id;
-      const sk = SKUS[Math.floor(Math.random() * SKUS.length)].sku;
+      const sk = available[Math.floor(Math.random() * available.length)].sku;
       applyStockChange(sk, -1, ch);
       setActiveSource(ch);
       setTimeout(() => setActiveSource(null), 1400);

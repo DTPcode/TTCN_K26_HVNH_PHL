@@ -31,7 +31,7 @@ function Body() {
           {WAREHOUSE_TXNS.map((t) => (
             <tr key={t.id} className="border-t">
               <td className="px-3 py-2 text-xs">{fmtTime(t.time)}</td>
-              <td className="px-3 py-2"><Badge className={t.type === "in" ? "bg-emerald-100 text-emerald-700 border-0" : "bg-amber-100 text-amber-700 border-0"}>{t.type === "in" ? "Nhập" : "Xuất"}</Badge></td>
+              <td className="px-3 py-2"><Badge className={t.type === "in" ? "bg-emerald-100 text-emerald-700 border-0" : t.type === "out" ? "bg-amber-100 text-amber-700 border-0" : "bg-blue-100 text-blue-700 border-0"}>{t.type === "in" ? "Nhập" : t.type === "out" ? "Xuất" : "Điều chỉnh"}</Badge></td>
               <td className="px-3 py-2 font-mono text-xs">{t.sku}</td>
               <td className="px-3 py-2">{SKUS.find((s) => s.sku === t.sku)?.name ?? "—"}</td>
               <td className="px-3 py-2 text-right">{fmtVN(t.qty)}</td>

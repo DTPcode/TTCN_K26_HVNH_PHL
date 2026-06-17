@@ -12,10 +12,9 @@ interface NavItem { to: string; label: string; icon: typeof Users; }
 
 const NAV: Record<Role, NavItem[]> = {
   system_admin: [
-    { to: "/admin/sync-engine", label: "Tổng quan kỹ thuật", icon: LayoutDashboard },
+    { to: "/admin/sync-engine", label: "Giám sát Sync Engine", icon: Activity },
     { to: "/admin/users", label: "Quản lý người dùng", icon: Users },
     { to: "/admin/config", label: "Cấu hình hệ thống", icon: Settings },
-    { to: "/admin/sync-engine", label: "Giám sát Sync Engine", icon: Activity },
     { to: "/admin/logs", label: "Nhật ký hệ thống", icon: FileText },
   ],
   ecommerce_admin: [
@@ -29,7 +28,6 @@ const NAV: Record<Role, NavItem[]> = {
   warehouse_manager: [
     { to: "/inventory", label: "Tồn kho thực tế", icon: Boxes },
     { to: "/warehouse/transactions", label: "Nhập kho / Xuất kho", icon: ArrowDownToLine },
-    { to: "/inventory", label: "Cập nhật tồn kho thủ công", icon: Edit3 },
     { to: "/warehouse/history", label: "Lịch sử biến động", icon: History },
     { to: "/warehouse/sync", label: "Trạng thái đồng bộ", icon: RefreshCw },
   ],

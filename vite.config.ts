@@ -12,4 +12,9 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Deploy target: vercel (serverless) hoặc cloudflare-pages
+  // Đổi thành "cloudflare-pages" nếu host trên Cloudflare
+  nitro: {
+    preset: process.env.VERCEL ? "vercel" : undefined,
+  },
 });
