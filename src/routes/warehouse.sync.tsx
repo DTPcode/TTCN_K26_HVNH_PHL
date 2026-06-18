@@ -39,7 +39,10 @@ function SyncBody() {
       const diffs: Record<ChannelId, number> = {} as Record<ChannelId, number>;
       let hasDiff = false;
       ecomChannels.forEach((c) => {
-        const diff = s.channels[c.id] - s.central;
+        // So sánh với giá trị MÀ KÊNH LẼ RA PHẢI CÓ (central - buffer), không phải central thô
+        const buf = (c.id === "store") ? 0 : s.safetyBuffer;
+        const expected = Math.max(0, s.central - buf);
+        const diff = s.channels[c.id] - expected;
         diffs[c.id] = diff;
         if (diff !== 0) hasDiff = true;
       });
@@ -147,14 +150,19 @@ function SyncBody() {
                     <td className="px-4 py-2.5 text-right font-bold">{fmtVN(s.central)}</td>
                     {ecomChannels.map((c) => {
                       const diff = s.diffs[c.id];
+                      const buf = (c.id === "store") ? 0 : s.safetyBuffer;
                       return (
                         <td key={c.id} className="px-4 py-2.5 text-right">
                           <span className="font-medium">{fmtVN(s.channels[c.id])}</span>
-                          {diff !== 0 && (
+                          {diff !== 0 ? (
                             <span className={`ml-1.5 text-xs font-semibold ${diff > 0 ? "text-blue-600" : "text-red-600"}`}>
                               ({diff > 0 ? "+" : ""}{diff})
                             </span>
-                          )}
+                          ) : buf > 0 ? (
+                            <span className="ml-1.5 text-xs text-muted-foreground/60">
+                              (buf -{buf})
+                            </span>
+                          ) : null}
                         </td>
                       );
                     })}
