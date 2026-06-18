@@ -31,6 +31,7 @@ const NAV: Record<Role, NavItem[]> = {
     { to: "/inventory", label: "Tồn kho thực tế", icon: Boxes },
     { to: "/warehouse/transactions", label: "Nhập kho / Xuất kho", icon: ArrowDownToLine },
     { to: "/warehouse/history", label: "Lịch sử biến động", icon: History },
+    { to: "/alerts", label: "Cảnh báo tồn kho", icon: AlertTriangle },
     { to: "/warehouse/sync", label: "Trạng thái đồng bộ", icon: RefreshCw },
   ],
 };
