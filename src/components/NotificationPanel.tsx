@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   NOTIFICATIONS, markNotificationRead, markAllNotificationsRead, fmtRel,
   type Notification, type NotificationType,
@@ -26,6 +27,7 @@ const ICON_MAP: Record<NotificationType, { icon: typeof Bell; color: string }> =
 
 export function NotificationPanel() {
   useSyncStore();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
 
@@ -41,8 +43,10 @@ export function NotificationPanel() {
   const handleClick = (n: Notification) => {
     markNotificationRead(n.id);
     if (n.link) {
-      // Dùng window.location để đảm bảo query params (?tab=requests) được parse đúng
-      window.location.href = n.link;
+      // Parse URL để lấy path và search params — dùng SPA navigate để KHÔNG reload trang
+      const url = new URL(n.link, window.location.origin);
+      const search = Object.fromEntries(url.searchParams.entries());
+      navigate({ to: url.pathname, search });
       setOpen(false);
     }
   };

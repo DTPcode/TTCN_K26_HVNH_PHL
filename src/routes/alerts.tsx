@@ -23,6 +23,9 @@ export const Route = createFileRoute("/alerts")({
       { name: "description", content: "Danh sách SKU sắp hết hàng và hết hàng cần xử lý." },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
+    tab: typeof search.tab === "string" ? search.tab : undefined,
+  }),
   component: () => (
     <RequireAuth roles={["ecommerce_admin", "system_admin", "warehouse_manager"]}>
       <AppShell title="Cảnh báo tồn kho">
@@ -34,30 +37,23 @@ export const Route = createFileRoute("/alerts")({
 
 type AlertTab = "low" | "out" | "requests";
 
-function getInitialTab(): AlertTab {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const t = params.get("tab");
-    if (t === "requests") return "requests";
-    if (t === "out") return "out";
-  } catch {}
-  return "low";
-}
-
 function AlertsBody() {
   useSyncStore();
   const { user } = useAuth();
+  const { tab: urlTab } = Route.useSearch();
 
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<AlertTab>(getInitialTab);
+  const [tab, setTab] = useState<AlertTab>(() => {
+    if (urlTab === "requests") return "requests";
+    if (urlTab === "out") return "out";
+    return "low";
+  });
 
-  // Khi URL thay đổi (ví dụ từ notification click), đồng bộ tab
+  // Khi URL search params thay đổi (ví dụ từ notification click SPA navigate), đồng bộ tab
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const t = params.get("tab");
-    if (t === "requests") setTab("requests");
-    else if (t === "out") setTab("out");
-  }, []);
+    if (urlTab === "requests") setTab("requests");
+    else if (urlTab === "out") setTab("out");
+  }, [urlTab]);
   const [requestSku, setRequestSku] = useState<SKU | null>(null);
   const [reqQty, setReqQty] = useState("");
   const [reqNote, setReqNote] = useState("");
