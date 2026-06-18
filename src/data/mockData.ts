@@ -164,7 +164,7 @@ const now = Date.now();
 export const CHANNELS: Channel[] = [
   { id: "store", name: "Cửa hàng vật lý", status: "online", lastSync: now - 12_000, syncEnabled: false },
   { id: "shopee", name: "Shopee", status: "online", lastSync: now - 8_000, syncEnabled: true },
-  { id: "tiktok", name: "TikTok Shop", status: "delayed", lastSync: now - 95_000, syncEnabled: true },
+  { id: "tiktok", name: "TikTok Shop", status: "online", lastSync: now - 15_000, syncEnabled: true },
   { id: "lazada", name: "Lazada", status: "online", lastSync: now - 22_000, syncEnabled: true },
   { id: "website", name: "Website Atino", status: "online", lastSync: now - 5_000, syncEnabled: false },
 ];
