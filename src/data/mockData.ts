@@ -631,6 +631,44 @@ export function testChannelConnection(channelId: ChannelId): Promise<boolean> {
 export function addProduct(p: Omit<Product, "id" | "createdAt">): Product {
   const prod: Product = { ...p, id: `p${Date.now()}`, createdAt: Date.now() };
   PRODUCTS.push(prod);
+
+  // Tạo 1 SKU mặc định cho sản phẩm mới (qty = 0)
+  const skuCode = `AT-${p.name.replace(/[^A-Za-z0-9]/g, "").substring(0, 6).toUpperCase()}-${Date.now().toString().slice(-4)}`;
+  const defaultSku: SKU = {
+    sku: skuCode,
+    name: `${p.name} - Mặc định`,
+    productId: prod.id,
+    size: "M",
+    color: p.category,
+    price: p.basePrice,
+    central: 0,
+    lowStockThreshold: SETTINGS.find((s) => s.key === "low_stock_threshold")?.value
+      ? Number(SETTINGS.find((s) => s.key === "low_stock_threshold")!.value) : 5,
+    safetyBuffer: SETTINGS.find((s) => s.key === "safety_buffer")?.value
+      ? Number(SETTINGS.find((s) => s.key === "safety_buffer")!.value) : 2,
+    channels: { store: 0, shopee: 0, tiktok: 0, lazada: 0, website: 0 },
+    isActive: true,
+  };
+  SKUS.push(defaultSku);
+
+  // Cảnh báo hết hàng cho sản phẩm mới
+  addNotification(
+    "stock_out",
+    `Sản phẩm mới chưa có tồn kho: ${skuCode}`,
+    `${p.name} vừa được thêm vào hệ thống nhưng chưa có tồn kho. Cần nhập hàng ngay.`,
+    "/alerts",
+    "all"
+  );
+
+  // Tự động tạo yêu cầu nhập hàng gửi cho Quản lý Kho
+  createStockRequest(
+    skuCode,
+    `${p.name} - Mặc định`,
+    20, // Số lượng đề xuất nhập mặc định
+    `Sản phẩm mới "${p.name}" vừa được tạo, cần nhập tồn kho ban đầu.`,
+    "Admin TMĐT"
+  );
+
   emit();
   return prod;
 }
