@@ -342,7 +342,7 @@ function makeVariants(): SKU[] {
     { pid: "p10", sku: "AT-JOGG-GRY-L", name: "Jogger Xám - L", size: "L", color: "Xám", price: 399000, qty: 50 },
   ];
 
-  const buf = 2; // default_safety_buffer = 2 (khớp SETTINGS)
+  const buf = 2; // initial value — sau khi SETTINGS load sẽ dùng getGlobalSafetyBuffer()
 
   return defs.map((d) => {
     const channelQty = Math.max(0, d.qty - buf);
@@ -602,6 +602,28 @@ export function updateSetting(key: string, value: string): void {
     s.updatedAt = Date.now();
     if (oldValue !== value) {
       addNotification("config_change", `Cấu hình "${s.description}" đã cập nhật`, `Giá trị thay đổi: ${oldValue} → ${value}`, "/admin/config");
+
+      // Khi Admin thay đổi safety_buffer → cập nhật toàn bộ SKU + channel stock
+      if (key === "default_safety_buffer") {
+        const newBuf = Math.max(0, Number(value) || 0);
+        SKUS.forEach((sku) => {
+          sku.safetyBuffer = newBuf;
+          // Recalculate channel qty
+          const chs: ChannelId[] = ["shopee", "tiktok", "lazada", "website"];
+          chs.forEach((ch) => {
+            sku.channels[ch] = Math.max(0, sku.central - newBuf);
+          });
+          // Store vẫn = central (không buffer)
+          sku.channels.store = sku.central;
+        });
+      }
+      // Khi Admin thay đổi low_stock_threshold → cập nhật toàn bộ SKU
+      if (key === "default_low_stock_threshold") {
+        const newThreshold = Math.max(0, Number(value) || 0);
+        SKUS.forEach((sku) => {
+          sku.lowStockThreshold = newThreshold;
+        });
+      }
     }
   }
   emit();
@@ -677,6 +699,19 @@ export function updateProduct(id: string, updates: Partial<Pick<Product, "name" 
   const p = PRODUCTS.find((x) => x.id === id);
   if (p) Object.assign(p, updates);
   emit();
+}
+
+// ============================================================
+// GLOBAL SAFETY BUFFER — đọc từ cấu hình Admin hệ thống
+// ============================================================
+export function getGlobalSafetyBuffer(): number {
+  const s = SETTINGS.find((x) => x.key === "default_safety_buffer");
+  return s ? Math.max(0, Number(s.value) || 0) : 2;
+}
+
+export function getGlobalLowStockThreshold(): number {
+  const s = SETTINGS.find((x) => x.key === "default_low_stock_threshold");
+  return s ? Math.max(0, Number(s.value) || 0) : 3;
 }
 
 // ============================================================

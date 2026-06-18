@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { AppShell, EmptyState } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
-import { CHANNELS, SKUS, PRODUCTS, fmtVN, fmtRel, type ChannelId } from "@/data/mockData";
+import { CHANNELS, SKUS, PRODUCTS, fmtVN, fmtRel, getGlobalSafetyBuffer, type ChannelId } from "@/data/mockData";
 import { useSyncStore } from "@/lib/useSyncStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -170,7 +170,7 @@ function Body() {
                   // Kiểm tra sai lệch: channel ≠ expected (central - buffer)
                   let hasDiff = false;
                   displayChannels.forEach((c) => {
-                    const buf = (c.id === "store") ? 0 : s.safetyBuffer;
+                    const buf = (c.id === "store") ? 0 : getGlobalSafetyBuffer();
                     const expected = Math.max(0, s.central - buf);
                     if (s.channels[c.id] !== expected) hasDiff = true;
                   });
@@ -185,7 +185,7 @@ function Body() {
                       <td className="px-4 py-2.5 text-muted-foreground text-xs">{s.productName}</td>
                       <td className="px-4 py-2.5 text-right font-bold">{fmtVN(s.central)}</td>
                       {displayChannels.map((c) => {
-                        const buf = (c.id === "store") ? 0 : s.safetyBuffer;
+                        const buf = (c.id === "store") ? 0 : getGlobalSafetyBuffer();
                         const expected = Math.max(0, s.central - buf);
                         const diff = s.channels[c.id] - expected;
                         return (

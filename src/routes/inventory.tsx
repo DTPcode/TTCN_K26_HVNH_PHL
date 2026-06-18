@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppShell, EmptyState } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
-import { SKUS, CHANNELS, manualAdjust, fmtVN } from "@/data/mockData";
+import { SKUS, CHANNELS, manualAdjust, fmtVN, getGlobalSafetyBuffer } from "@/data/mockData";
 import { useSyncStore } from "@/lib/useSyncStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,7 +35,7 @@ function Page() {
     return SKUS.filter((s) => {
       const matchQ = !q || s.sku.toLowerCase().includes(q.toLowerCase()) || s.name.toLowerCase().includes(q.toLowerCase());
       const diverge = CHANNELS.some((c) => {
-        const buf = (c.id === "store") ? 0 : s.safetyBuffer;
+        const buf = (c.id === "store") ? 0 : getGlobalSafetyBuffer();
         const expected = Math.max(0, s.central - buf);
         return s.channels[c.id] !== expected;
       });
@@ -100,7 +100,7 @@ function Page() {
               )}
               {rows.map((s) => {
                 const synced = CHANNELS.every((c) => {
-                  const buf = (c.id === "store") ? 0 : s.safetyBuffer;
+                  const buf = (c.id === "store") ? 0 : getGlobalSafetyBuffer();
                   const expected = Math.max(0, s.central - buf);
                   return s.channels[c.id] === expected;
                 });
@@ -111,7 +111,7 @@ function Page() {
                     <td className="px-3 py-2 text-right font-semibold">{fmtVN(s.central)}</td>
                     {CHANNELS.map((c) => {
                       const v = s.channels[c.id];
-                      const buf = (c.id === "store") ? 0 : s.safetyBuffer;
+                      const buf = (c.id === "store") ? 0 : getGlobalSafetyBuffer();
                       const expected = Math.max(0, s.central - buf);
                       const ok = v === expected;
                       return (

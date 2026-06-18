@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { AppShell, EmptyState } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
-import { CHANNELS, SKUS, fmtVN, fmtRel, type ChannelId } from "@/data/mockData";
+import { CHANNELS, SKUS, fmtVN, fmtRel, getGlobalSafetyBuffer, type ChannelId } from "@/data/mockData";
 import { useSyncStore } from "@/lib/useSyncStore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +40,7 @@ function SyncBody() {
       let hasDiff = false;
       ecomChannels.forEach((c) => {
         // So sánh với giá trị MÀ KÊNH LẼ RA PHẢI CÓ (central - buffer), không phải central thô
-        const buf = (c.id === "store") ? 0 : s.safetyBuffer;
+        const buf = (c.id === "store") ? 0 : getGlobalSafetyBuffer();
         const expected = Math.max(0, s.central - buf);
         const diff = s.channels[c.id] - expected;
         diffs[c.id] = diff;
@@ -150,7 +150,7 @@ function SyncBody() {
                     <td className="px-4 py-2.5 text-right font-bold">{fmtVN(s.central)}</td>
                     {ecomChannels.map((c) => {
                       const diff = s.diffs[c.id];
-                      const buf = (c.id === "store") ? 0 : s.safetyBuffer;
+                      const buf = (c.id === "store") ? 0 : getGlobalSafetyBuffer();
                       return (
                         <td key={c.id} className="px-4 py-2.5 text-right">
                           <span className="font-medium">{fmtVN(s.channels[c.id])}</span>
