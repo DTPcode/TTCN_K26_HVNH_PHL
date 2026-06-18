@@ -342,25 +342,30 @@ function makeVariants(): SKU[] {
     { pid: "p10", sku: "AT-JOGG-GRY-L", name: "Jogger Xám - L", size: "L", color: "Xám", price: 399000, qty: 50 },
   ];
 
-  return defs.map((d, index) => ({
-    sku: d.sku,
-    name: d.name,
-    productId: d.pid,
-    size: d.size,
-    color: d.color,
-    price: d.price,
-    central: d.qty,
-    lowStockThreshold: 3,
-    safetyBuffer: 0,
-    channels: {
-      store: d.qty,
-      shopee: Math.max(0, d.qty - (index % 2)),
-      tiktok: d.qty,
-      lazada: Math.max(0, d.qty - ((index + 1) % 2)),
-      website: d.qty,
-    },
-    isActive: true,
-  }));
+  const buf = 2; // default_safety_buffer = 2 (khớp SETTINGS)
+
+  return defs.map((d) => {
+    const channelQty = Math.max(0, d.qty - buf);
+    return {
+      sku: d.sku,
+      name: d.name,
+      productId: d.pid,
+      size: d.size,
+      color: d.color,
+      price: d.price,
+      central: d.qty,
+      lowStockThreshold: 3,
+      safetyBuffer: buf,
+      channels: {
+        store: d.qty,         // Cửa hàng vật lý = tồn kho trung tâm (không buffer)
+        shopee: channelQty,   // Tất cả kênh TMĐT = central - safetyBuffer
+        tiktok: channelQty,
+        lazada: channelQty,
+        website: channelQty,
+      },
+      isActive: true,
+    };
+  });
 }
 
 export const SKUS: SKU[] = makeVariants();
