@@ -34,7 +34,11 @@ function Page() {
   const rows = useMemo(() => {
     return SKUS.filter((s) => {
       const matchQ = !q || s.sku.toLowerCase().includes(q.toLowerCase()) || s.name.toLowerCase().includes(q.toLowerCase());
-      const diverge = CHANNELS.some((c) => Math.abs(s.channels[c.id] - s.central) > 1);
+      const diverge = CHANNELS.some((c) => {
+        const buf = (c.id === "store") ? 0 : s.safetyBuffer;
+        const expected = Math.max(0, s.central - buf);
+        return s.channels[c.id] !== expected;
+      });
       if (filter === "low" && s.central > 3) return false;
       if (filter === "out" && s.central !== 0) return false;
       if (filter === "diverge" && !diverge) return false;
@@ -95,7 +99,11 @@ function Page() {
                 <tr><td colSpan={9}><EmptyState /></td></tr>
               )}
               {rows.map((s) => {
-                const synced = CHANNELS.every((c) => Math.abs(s.channels[c.id] - s.central) <= 1);
+                const synced = CHANNELS.every((c) => {
+                  const buf = (c.id === "store") ? 0 : s.safetyBuffer;
+                  const expected = Math.max(0, s.central - buf);
+                  return s.channels[c.id] === expected;
+                });
                 return (
                   <tr key={s.sku} className="border-t">
                     <td className="px-3 py-2 font-mono text-xs">{s.sku}</td>
@@ -103,7 +111,9 @@ function Page() {
                     <td className="px-3 py-2 text-right font-semibold">{fmtVN(s.central)}</td>
                     {CHANNELS.map((c) => {
                       const v = s.channels[c.id];
-                      const ok = Math.abs(v - s.central) <= 1;
+                      const buf = (c.id === "store") ? 0 : s.safetyBuffer;
+                      const expected = Math.max(0, s.central - buf);
+                      const ok = v === expected;
                       return (
                         <td key={c.id} className="px-3 py-2 text-right">
                           <span className="inline-flex items-center gap-1.5 justify-end">
